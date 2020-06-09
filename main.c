@@ -5,15 +5,18 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-const int width = 250;
-const int height = 500;
+ int width = 0;
+int height = 0;
 
 /*the grid size*/
 #define rows (10)
 #define cols (20)
 
+
 /*size of each block in grid*/
-const int scale = height / cols;
+int scale = 0;
+
+const bool have_level = true;
 
 
 typedef enum {
@@ -123,31 +126,31 @@ void move_piece(tetromino_piece *piece, int mode, unsigned char grid[]) {
         case 0: {
             piece->pos_x -= does_piece_fit(
                     (tetromino_piece) {piece->index, piece->rotation, piece->pos_x - 1,
-                                       piece->pos_y,false}, grid);
+                                       piece->pos_y, false}, grid);
             break;
         }
         case 1: {
             piece->pos_x += does_piece_fit(
                     (tetromino_piece) {piece->index, piece->rotation, piece->pos_x + 1,
-                                       piece->pos_y,false}, grid);
+                                       piece->pos_y, false}, grid);
             break;
         }
         case 2: {
             piece->pos_y += does_piece_fit(
                     (tetromino_piece) {piece->index, piece->rotation, piece->pos_x,
-                                       piece->pos_y + 1,false}, grid);
+                                       piece->pos_y + 1, false}, grid);
             break;
         }
         case 3: {
             piece->rotation += does_piece_fit(
                     (tetromino_piece) {piece->index, piece->rotation + 1, piece->pos_x,
-                                       piece->pos_y,false}, grid);
+                                       piece->pos_y, false}, grid);
             break;
         }
         case 4: {
 
             while (does_piece_fit((tetromino_piece) {piece->index, piece->rotation, piece->pos_x,
-                                                     piece->pos_y+1,false},grid)) {
+                                                     piece->pos_y + 1, false}, grid)) {
                 piece->pos_y++;
             }
             piece->jump = true;
@@ -157,20 +160,20 @@ void move_piece(tetromino_piece *piece, int mode, unsigned char grid[]) {
     }
 }
 
-void draw_piece_drop(SDL_Renderer* renderer, tetromino_piece piece, unsigned char grid[]) {
+void draw_piece_drop(SDL_Renderer *renderer, tetromino_piece piece, unsigned char grid[]) {
 
     while (does_piece_fit((tetromino_piece) {piece.index, piece.rotation, piece.pos_x,
-                              piece.pos_y+1},grid)) {
+                                             piece.pos_y + 1}, grid)) {
         piece.pos_y++;
     }
-    for(int px = 0; px < 4; ++px) {
+    for (int px = 0; px < 4; ++px) {
         for (int py = 0; py < 4; ++py) {
             int x = (piece.pos_x + px) * scale;
-            int y = (piece.pos_y + py-4) * scale;
+            int y = (piece.pos_y + py - 4) * scale;
 
-            if(tetromino[piece.index-1][rotated_index(px,py,piece.rotation)] != '.') {
-                 SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
-                switch (piece.index+'0') {
+            if (tetromino[piece.index - 1][rotated_index(px, py, piece.rotation)] != '.') {
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                switch (piece.index + '0') {
                     case piece1:
                         SDL_SetRenderDrawColor(renderer, 210, 180, 140, 200);
                         break;
@@ -193,24 +196,20 @@ void draw_piece_drop(SDL_Renderer* renderer, tetromino_piece piece, unsigned cha
                         SDL_SetRenderDrawColor(renderer, 255, 102, 0, 200);
                         break;
                 }
-                 draw_rect(renderer,x,y,scale,scale);
-                 Uint8 r,g,b,a;
-                 SDL_GetRenderDrawColor(renderer,&r,&g,&b,&a);
-                 SDL_SetRenderDrawColor(renderer,r,g,b,255);
-                 draw_rect_no_fill(renderer,x,y,scale,scale);
+                draw_rect(renderer, x, y, scale, scale);
+                Uint8 r, g, b, a;
+                SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+                SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+                draw_rect_no_fill(renderer, x, y, scale, scale);
             }
         }
     }
 }
 
 
-void reset_piece(tetromino_piece *piece,unsigned char grid[]) {
-    *piece = (tetromino_piece) {rand() % 7 + 1, 0, rows / 2 - 2, 0,false};
+void reset_piece(tetromino_piece *piece) {
+    *piece = (tetromino_piece) {rand() % 7 + 1, 0, rows / 2 - 2, 0, false};
 }
-
-
-
-
 
 
 void reset_grid(unsigned char grid[]) {
@@ -224,7 +223,7 @@ void draw_grid(SDL_Renderer *renderer, unsigned char grid[]) {
 
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_NONE);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
             int x = i * scale;
             int y = j * scale;
             switch (grid[j * rows + i + 40]) {
@@ -290,7 +289,7 @@ bool held = false;
 void handle_key_press(tetromino_piece *current_piece, int *key_pressed, unsigned char grid[]) {
     /*when key is pressed and not held. it can rotate*/
     if (*key_pressed == 3) {
-        if(!held) move_piece(current_piece, 3, grid);
+        if (!held) move_piece(current_piece, 3, grid);
         held = true;
     } else {
         move_piece(current_piece, *key_pressed, grid);
@@ -318,20 +317,19 @@ void get_text_and_rect(SDL_Renderer *renderer, int x, int y, char *text,
 }
 
 
-size_t get_points(size_t lines_cleared) {
+size_t get_points(size_t lines_cleared, size_t level) {
     switch (lines_cleared) {
         case 0:
             return 0;
         case 1:
-            return 50;
+            return 50 * (level + 1);
         case 2:
-            return 150;
+            return 150 * (level + 1);
         case 3:
-            return 350;
+            return 300 * (level + 1);
         default:
-            return 1000;
+            return 500 * (level + 1);
     }
-    return 0;
 }
 
 void update_score_text(size_t score, char *text) {
@@ -339,42 +337,75 @@ void update_score_text(size_t score, char *text) {
 }
 
 
+void update_level_text(size_t level, char *text) {
+    sprintf(text, "level: %zu", level);
+}
 
 
-int main() {
+int main(int argc, char** argv) {
+    height = 500;
+    scale = height/cols;
+    switch(argc) {
+        case 1:
+            width = 250;
+            break;
+        case 2:
+        width = strcmp("-mode1",argv[1]) == 0 ? 250 : strcmp("-mode2",argv[1])  == 0 ? 500 : -1;
+        if(width == -1) {
+            perror("error: unknown arg");
+            exit(5);
+        }
+            break;
+        default:
+            perror("error: too many args");
+            exit(4);
+            break;
+    }
     srand(time(0));
+    srand(rand());
 
     bool quit = false;
     /*--------------sdl-------------*/
-    SDL_Init(SDL_INIT_VIDEO);
     TTF_Init();
+    SDL_Init(SDL_INIT_VIDEO);
     SDL_Event event;
-    SDL_Window *window = SDL_CreateWindow("Tetris!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                          width, height, SDL_RENDERER_ACCELERATED);
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_Window *window = SDL_CreateWindow("Tetris!", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                          width, height, 0);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 
-    unsigned char grid[rows * cols + 40];
+    unsigned char grid[rows * cols + 100];
+    memset(grid,0,sizeof(grid));
     reset_grid(grid);
-    tetromino_piece current_piece = (tetromino_piece) {(rand()/(double)RAND_MAX) * 7 + 1, 0, rows / 2 - 2, 1};
-    unsigned char display_grid[rows * cols + 40];
+    tetromino_piece current_piece;
+    reset_piece(&current_piece);
+    unsigned char display_grid[rows * cols + 100];
+    memset(display_grid,0,sizeof(display_grid));
     int key_pressed = -1;
     int frame_count_mod = 0;
 
 
     int lines[cols];
+    memset(lines,0,sizeof(lines));
     int lines_length = 0;
     //clear lines
 
 
 
 
-    TTF_Font *score_font = TTF_OpenFont("../Helvetica.ttf", scale);
-    SDL_Texture *score_text_texture;
-    SDL_Rect score_text_rect;
+    TTF_Font *score_font = TTF_OpenFont("../Helvetica.ttf", scale / 1.5);
+    SDL_Texture *score_text_texture = NULL, *level_text_texture = NULL;
+    SDL_Rect score_text_rect = {0};
+    SDL_Rect level_text_rect = {0};
     char score_text[130];
+    char level_text[130];
+    memset(score_text,0,sizeof(score_text));
+    memset(level_text,0,sizeof(level_text));
     size_t score = 0;
-
+    size_t base_level_requirement = 10;
+    size_t level_requirement = base_level_requirement;
+    size_t lines_cleared = 0;
+    size_t level = 0;
 
 
     while (!quit) {
@@ -395,12 +426,13 @@ int main() {
         }
 
 
-        if(frame_count_mod % 35 == 0){
+        if (frame_count_mod != 0) {
             static int force_down_counter = 0;
-           static bool score_changed = true;
+            static bool score_changed = true;
+            static bool level_changed = true;
             handle_key_press(&current_piece, &key_pressed, grid);
             /*force current piece down*/
-            if (force_down_counter % 240 == 0 || current_piece.jump ) {
+            if (force_down_counter % (10000 - 863 * level) == 0 || current_piece.jump) {
                 if (does_piece_fit((tetromino_piece) {current_piece.index, current_piece.rotation, current_piece.pos_x,
                                                       current_piece.pos_y + 1}, grid))
                     current_piece.pos_y++;
@@ -424,7 +456,7 @@ int main() {
                         }
                     }
                     tetromino_piece temp = current_piece;
-                    reset_piece(&current_piece,grid);
+                    reset_piece(&current_piece);
 
                     /*clear lines*/
                     for (int i = 0; i < lines_length; ++i)
@@ -436,12 +468,16 @@ int main() {
                     /*game over*/
                     if (!does_piece_fit(
                             (tetromino_piece) {current_piece.index, current_piece.rotation, current_piece.pos_x,
-                                               current_piece.pos_y + 1}, grid)||temp.pos_y<4) {
-                        reset_piece(&current_piece,grid);
+                                               current_piece.pos_y + 1}, grid) || temp.pos_y < 4) {
+                        reset_piece(&current_piece);
                         reset_grid(grid);
                         lines_length = 0;
                         score = 0;
+                        lines_cleared = 0;
+                        level_requirement = base_level_requirement;
+                        level = 0;
                         score_changed = true;
+                        level_changed = true;
                     }
 
                 }
@@ -449,19 +485,28 @@ int main() {
 
             if (score_changed) {
                 /*get score text texture*/
-                score += get_points(lines_length);
+                score += get_points(lines_length, level);
+                lines_cleared += lines_length;
                 update_score_text(score, score_text);
-                get_text_and_rect(renderer, scale*1.25, scale * 1.5, score_text, score_font, &score_text_texture,
+                get_text_and_rect(renderer, scale * 1.25, scale * 1.5, score_text, score_font, &score_text_texture,
                                   &score_text_rect);
+                level_changed |= lines_cleared >= level_requirement && level < 11;
             }
-
-
-
+            if (level_changed && have_level) {
+                level += lines_cleared >= level_requirement && level < 11;
+                level_requirement += base_level_requirement * (lines_cleared >= level_requirement && level < 11);
+                update_level_text(level, level_text);
+                get_text_and_rect(renderer, scale * 1.25, scale * 2.6, level_text, score_font, &level_text_texture,
+                                  &level_text_rect);
+                /*reset level score*/
+                lines_cleared = 0;
+            }
 
             //reset length
             lines_length = 0;
             force_down_counter++;
             score_changed = false;
+            level_changed = false;
         }
 
 
@@ -480,27 +525,31 @@ int main() {
 
 
         /*clear screen black*/
-        SDL_SetRenderDrawColor(renderer, 0, 0,0, 255);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        draw_piece_drop(renderer,current_piece,grid);
+        draw_piece_drop(renderer, current_piece, grid);
         draw_grid(renderer, display_grid);
 
 
         /*draw text*/
-        SDL_RenderCopy(renderer, score_text_texture, 0, &score_text_rect);
-
-
+        if(score_text_texture) SDL_RenderCopy(renderer, score_text_texture, 0, &score_text_rect);
+        if (have_level && level_text_texture) {
+            SDL_RenderCopy(renderer, level_text_texture, 0, &level_text_rect);
+        }
         /*update screen with renderer*/
         SDL_RenderPresent(renderer);
 
         frame_count_mod++;
     }
+    TTF_CloseFont(score_font);
     TTF_Quit();
 
     /*free memory*/
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    SDL_DestroyTexture(score_text_texture);
+    SDL_DestroyTexture(level_text_texture);
     SDL_Quit();
 
     return EXIT_SUCCESS;
